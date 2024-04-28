@@ -1,6 +1,7 @@
 const addTaskButton = document.getElementById('button');
 const listDiv = document.getElementById('list');
 const todoTaskInput = document.getElementById('todo-task');
+const deleteAllBtn = document.getElementById('delete-all-btn');
 
 const addTask = () => {
 	const taskValue = todoTaskInput.value;
@@ -16,17 +17,14 @@ const addTask = () => {
 
 	const container = document.createElement('div');
 	container.classList.add('todo-item', 'flex', 'items-center', 'gap-x-3');
+	container.dataset.taskId = task.id;
 	container.innerHTML = `
-        <input id="todo-checkbox ${task.id}" class="todo-checkbox" type="checkbox" value="todo" />
-        <label for="todo-checkbox ${task.id}" class="todo-text text-2xl max-w-7xl break-words text-center cursor-pointer">${taskValue}</label>
+        <input id="todo-checkbox-${task.id}" class="todo-checkbox" type="checkbox" value="todo" />
+        <label for="todo-checkbox-${task.id}" class="todo-text text-2xl max-w-7xl break-words text-center cursor-pointer">${taskValue}</label>
 				<a href="#" class="remove-btn"><img src="distribution/img/trash.svg" alt="trash"></a>
     `;
 	listDiv.append(container);
 	todoTaskInput.value = '';
-
-	const removeButton = container.querySelector('.remove-btn');
-	console.log('removeButton', removeButton);
-	removeButton.addEventListener('click', () => removeToDo(task.id));
 };
 
 const lineThroughText = e => {
@@ -39,11 +37,17 @@ const lineThroughText = e => {
 			: e.target.previousElementSibling;
 		const todoItem = e.target.closest('.todo-item');
 		const todoText = todoItem.querySelector('.todo-text');
+		const taskId = todoItem.dataset.taskId;
+
+		const task = JSON.parse(localStorage.getItem(`task_${taskId}`));
+		task.completed = checkbox.checked;
+		localStorage.setItem(`task_${taskId}`, JSON.stringify(task));
+
 		todoText.classList.toggle('line-through', checkbox.checked);
 	}
 };
 
-const removeToDo = (e, taskId) => {
+const removeToDo = taskId => {
 	localStorage.removeItem(`task_${taskId}`);
 	const todoItem = document.querySelector(
 		`.todo-item[data-task-id="${taskId}"]`
@@ -68,10 +72,12 @@ const addTaskToDOM = task => {
 	container.classList.add('todo-item', 'flex', 'items-center', 'gap-x-3');
 	container.dataset.taskId = task.id;
 	container.innerHTML = `
-        <input id="todo-checkbox ${
+        <input id="todo-checkbox-${
 					task.id
-				}" class="todo-checkbox" type="checkbox" value="todo" />
-        <label for="todo-checkbox ${
+				}" class="todo-checkbox" type="checkbox" value="todo" ${
+		task.completed ? 'checked' : ''
+	} />
+        <label for="todo-checkbox-${
 					task.id
 				}" class="todo-text text-2xl max-w-7xl break-words text-center cursor-pointer ${
 		task.completed ? 'line-through' : ''
@@ -83,3 +89,16 @@ const addTaskToDOM = task => {
 
 addTaskButton.addEventListener('click', addTask);
 listDiv.addEventListener('click', lineThroughText);
+listDiv.addEventListener('click', event => {
+	const removeButton = event.target.closest('.remove-btn');
+	if (removeButton) {
+		const todoItem = removeButton.closest('.todo-item');
+		const taskId = todoItem.dataset.taskId;
+		removeToDo(taskId);
+	}
+});
+
+deleteAllBtn.addEventListener('click', () => {
+	listDiv.innerHTML = '';
+	localStorage.clear();
+});
